@@ -14,47 +14,89 @@
  - **Trip** - Хранит информацию о запланированных перелётах
  - **Taken** - Хранит информацию о занятых местах в самолёте в определённой поездке
 
-Необходимо реализовать функции открытия и закрытия структуры **aero_db** и методы этой структуры, так чтобы они соответствовали интерфейсу:
+Необходимо реализовать функции открытия и закрытия структуры **AeroDB** и методы этой структуры, так чтобы они соответствовали интерфейсу:
 
 ```go
-type sqlite3_db interface {
-    plan_trip(company, plane string, time_out, time_in time.Time, town_out, town_in string) (error)
-    end_trip(trip_id int, name string, seat int) (error)
-    get_trips(from, to string) ([]Trip, error)
-    take_seat(trip_id int, name string, int seat) (error)
-    get_free_seats(trip_id int) ([]int, error)
-    add_company(name string) (error)
-    del_company(name string) (error)
-    add_plane(name string) (error)
-    del_plane(name string) (error)
-    add_passenger(name, surname, middle_name string) (error)
+type Sqlite3DB interface {
+    PlanTrip(company, plane string, timeOut, timeIn time.Time, townOut, townIn string) (error)
+    EndTrip(tripID int) (error)
+    GetTrips(from, to string) ([]Trip, error)
+    GetAllTrips() ([]Trip, error)
+    TakeSeat(tripID int, p Passenger, seat int) (error)
+    GetFreeSeats(tripID int) ([]int, error)
+    AddCompany(name string) (error)
+    DelCompany(name string) (error)
+    AddPlane(name string) (error)
+    DelPlane(name string) (error)
+    AddPassenger(p Passenger) (error)
 }
 
 type Trip struct {
     id int
     company, plane int
-    time_out, time_in time.Time
-    town_out, town_in int
+    timeOut, timeIn time.Time
+    townOut, townIn int
 }
 
-func open_db(fname string) (*sqlite3_db, error) {}
-func close_db(*sqlite3_db) (error) {}
+type Passeger struct {
+    name, surname, middlename string
+}
+
+func OpenDB(fname string) (*Sqlite3DB, error) {}
+func CloseDB(*Sqlite3DB) (error) {}
 ```
 
 # Описание методов и функций
 
-#### Функция `open_db`
+#### Функция `OpenDB`
 
 `Вход:` Название файла базы данных.
 `Выход:` Указатель на структуру базы данных, ошибка(или nil)
 
 Функция подготавливает структуры базы данных, открывая файл sqlite3 и подготавливает структуры к работе(если в вашей структуре есть ещё что-то помимо объекта базы)
 
-#### Функция `close_db`
+#### Функция `CloseDB`
 
 `Вход:` Указатель на структуру базы данных
 `Выход:` Ошибка(или nil)
 
-Функция завершает работу с базой данных и закрывает файл с ней, затем удаляеи структуру
+Функция завершает работу с базой данных и закрывает файл с ней
+
+#### Метод `PlanTrip`
+
+`Вход:` Названия компании и самолета, время вылета и прибытия, места начала и прибытия.
+`Выход:` Ошибка(или nil)
+
+Добавляет в базу данных новую поездку с заданной информацией, если самолёта или компании с заданными именами нет, то вернуть ошибку.
+
+#### Метод `EndTrip`
+
+`Вход:` ID поездки
+`Выход:` Ошибка(или nil)
+
+Метод завершает выбранную поездку, удаляя ее из базы данных, при этом также из Taken удаляются места, связанные с этой поездкой.
+
+#### Метод `GetTrips`
+
+`Вход:` Место начала и место прибытия
+`Выход:` Слайс поездок, ошибка(или nil)
+
+Метод считывает все поездки из базы данных которые начинаются в from, а заканчивается в to и возвращает их в виде слайса.
+
+#### Метод `GetAllTrips`
+
+`Вход:` 
+`Выход:` Слайс поездок, ошибка(или nil)
+
+Метод считывает все поездки из базы данных и возвращает их в виде слайса.
+
+#### Метод `TakeSeat`
+
+`Вход:` ID поездки, информация о пассажире, номер места
+`Выход:` Ошибка(или nil)
+
+Метод заносит информацию о том, что место в поездке занято некоторым пассажиром. Если пассажира нет в базе данных Passenger, то метод добавляет его. Если место занято, его нет в самолете или не существует поездки, возвращается ошибка.
+
+
 
 ***to be continued***

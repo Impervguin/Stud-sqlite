@@ -14,7 +14,7 @@ type Sqlite3DB interface {
     AddCompany(name string) (error)
     DelCompany(name, inherit string) (error)
     AddPlane(name, companyName string, seats int) (error)
-    DelPlane(name string) (error)
+    DelPlane(name, heritant string) (error)
     AddPassenger(name string) (error)
 }
 

@@ -1,18 +1,30 @@
 import os
 import sqlite3
 import database as data
+import sys
 
-FILENAME = "./database/aero.sqlite3"
+if len(sys.argv) < 2:
+    print("No filename in arguments")
+    sys.exit(1)
 
-try:
-    os.mkdir("database")
-except FileExistsError:
-    pass
+FILENAME = sys.argv[1]
+
+
+# FILENAME = "./database/aero.sqlite3"
+
+# try:
+#     os.mkdir("database")
+# except FileExistsError:
+#     pass
+
+if not os.path.exists(os.path.dirname(FILENAME)):
+    print("Incorrect path to file")
+    sys.exit(2)
 
 if (os.path.exists(FILENAME)):
     os.remove(FILENAME)
 
-db = sqlite3.connect("database/aero.sqlite3")
+db = sqlite3.connect(FILENAME)
 
 db.execute("""CREATE TABLE IF NOT EXISTS Trip (
            id INTEGER primary key,

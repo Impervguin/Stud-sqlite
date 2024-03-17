@@ -3,7 +3,6 @@ package aerodb
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/mattn/go-sqlite3"
@@ -19,7 +18,6 @@ type AeroDB struct {
 }
 
 func (db *AeroDB) OpenDB(fname string) (error) {
-	// fname = fname + "?parseTime=true"
 	tdb, err :=	sql.Open("sqlite3", fname)
 	if (err != nil) {
 		return ErrFile
@@ -183,11 +181,13 @@ func (db *AeroDB) GetFreeSeats(tripID int) ([]int, error) {
 		if err = rows.Scan(&taken); err != nil {
 			return []int{}, ErrDB
 		}
-		fmt.Println(taken)
 		res[taken  - 1] = 0
 	}
-
-	return filterNulls(res), nil
+	res = filterNulls(res)
+	if len(res) == 0 {
+		return []int{}, ErrEmpty
+	}
+	return res, nil
 }
 
 
@@ -238,9 +238,7 @@ func (db *AeroDB) GetAllTrips() ([]Trip, error) {
 	}
 
 	rows, err := db.db.Query("SELECT * FROM Trip")
-	if (err == sql.ErrNoRows) {
-		return []Trip{}, ErrEmpty
-	} else if (err != nil) {
+	if (err != nil) {
 		return []Trip{}, ErrDB
 	}
 	
@@ -260,6 +258,9 @@ func (db *AeroDB) GetAllTrips() ([]Trip, error) {
 		
 		new := Trip{id, company, plane, timeOut, timeIn, townOut, townIn}
 		res = append(res, new)
+	}
+	if len(res) == 0 {
+		return []Trip{}, ErrEmpty
 	}
 	return res, nil
 }
@@ -270,12 +271,11 @@ func (db *AeroDB) GetTrips(from, to string) ([]Trip, error) {
 	}
 
 	rows, err := db.db.Query("SELECT * FROM Trip WHERE town_out=? AND town_in=?", from, to)
-	if (err == sql.ErrNoRows) {
-		return []Trip{}, ErrEmpty
-	} else if (err != nil) {
+	if (err != nil) {
 		return []Trip{}, ErrDB
 	}
-	
+
+
 	defer rows.Close()
 	res := []Trip{}
 	for rows.Next() {
@@ -293,6 +293,9 @@ func (db *AeroDB) GetTrips(from, to string) ([]Trip, error) {
 		new := Trip{id, company, plane, timeOut, timeIn, townOut, townIn}
 		res = append(res, new)
 	}
+	if len(res) == 0 {
+		return []Trip{}, ErrEmpty
+	}
 	return res, nil
 }
 
@@ -300,8 +303,18 @@ func (db *AeroDB) PlanTrip(trip Trip) (TripID int, err error) {
 	if (!db.opened) {
 		return 0, ErrNotOpened
 	}
-	if (trip.timeOut.Compare(trip.timeOut) >= 0) {
+	if (trip.timeOut.Compare(trip.timeIn) >= 0) {
 		return 0, ErrIncorectTime
+	}
+
+	row := db.db.QueryRow("SELECT * FROM Company WHERE id=?", trip.company)
+	if row.Scan() == sql.ErrNoRows {
+		return 0, ErrNotFound
+	}
+
+	row = db.db.QueryRow("SELECT * FROM Plane WHERE id=?", trip.plane)
+	if row.Scan() == sql.ErrNoRows {
+		return 0, ErrNotFound
 	}
 
 	_, err = db.db.Exec(`INSERT INTO Trip(company_id, plane_id, time_out, time_in, town_out, town_in)
@@ -311,7 +324,7 @@ func (db *AeroDB) PlanTrip(trip Trip) (TripID int, err error) {
 		return 0, ErrDB
 	}
 
-	row := db.db.QueryRow(`SELECT id FROM Trip
+	row = db.db.QueryRow(`SELECT id FROM Trip
 	                      WHERE company_id=? AND plane_id=? AND time_out=? AND time_in=? AND town_out=?
 						   AND town_in=?`, trip.company, trip.plane, trip.timeOut, trip.timeIn, trip.townOut, trip.townIn)
 	if row.Scan(&TripID) != nil {
@@ -359,6 +372,7 @@ func (db *AeroDB) DelPlane(name string) (error) {
 		return ErrDB
 	}
 
+	
 
 	trips := []int{}
 	for rows.Next() {

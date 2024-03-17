@@ -1540,3 +1540,51 @@ func TestGetTripsNegative(t *testing.T) {
 		t.Errorf("Incorrect database action\nGot:\n%v\nExpected:\n%v", diff, ediff)
 	}
 }
+
+// Negative Test 15: CloseDb unopened
+func TestCloseDBNegative(t *testing.T) {
+	dir := "tests/neg15/" // Директория с данными для теста
+	tbase, tmod, err := createTestDataBases() // Создаёт два временных файла и записываем в них
+	// тестовую базу данных
+	if (err != nil) {
+		t.Error(err)
+		return
+	}
+	// Удаляем временные файлы
+	defer os.Remove(tbase)
+	defer os.Remove(tmod)
+
+	// Считываем тестовые данные
+	// eout - возвращаемые значения функции
+	// ediff - отличие базы данных после выполнения операции от стандартной
+	eout, ediff, err := readTest(dir)
+	if (err != nil) {
+		t.Error(err)
+		return
+	}
+	eout = strings.Trim(eout, "\n")
+
+	// Начало теста
+	db := AeroDB{}	
+	// Тестовое действие
+	funcErr := db.CloseDB()
+
+	// Получение вывода в строковом формате
+	out := errMessage(funcErr)
+	// Сравнение полученной базы данных исходной
+	diff, err := diffSql(tbase, tmod)
+	
+	if (err != nil) {
+		t.Errorf("Cannot compare databases: %v", err.Error())
+		return
+	}
+	// Анализ полученных результатов с ожидаемыми
+	// Сравниваем возвращаемые значения функции
+	if (out != eout) {
+		t.Errorf("Incorrect output\nGot:\n%v\nExpected:\n%v", out, eout)
+	}
+	// Сравниваем изменение базы данных
+	if (diff != ediff) {
+		t.Errorf("Incorrect database action\nGot:\n%v\nExpected:\n%v", diff, ediff)
+	}
+}

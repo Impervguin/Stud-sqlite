@@ -22,7 +22,7 @@ jobs:
       run: sudo apt install sqlite3-tools
     
     - name: Setting timezone to Moscow # For tests with trips
-      run: timedatectl set-timezone Europe/Moscow
+      run: sudo timedatectl set-timezone Europe/Moscow
     
     - name: Build
       run: go build -v ./...
